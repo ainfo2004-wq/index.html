@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ferrari Pro Drive</title>
+    <title>Ferrari Quick Start</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: Arial; }
         #ui { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 10; pointer-events: none; }
-        .btn { width: 65px; height: 65px; background: rgba(255,0,0,0.6); border: 2px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 25px; pointer-events: auto; cursor: pointer; user-select: none; }
-        #status { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 5; background: rgba(0,0,0,0.5); padding: 5px; }
+        .btn { width: 65px; height: 65px; background: rgba(255,0,0,0.7); border: 2px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 25px; pointer-events: auto; cursor: pointer; user-select: none; }
     </style>
 </head>
 <body>
-    <div id="status">المحرك يسخن... ثواني وستظهر الفيراري</div>
     <div id="ui">
         <div class="btn" id="left">◀</div>
         <div style="display:flex; flex-direction:column; gap:10px;">
@@ -35,22 +33,28 @@
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
             document.body.appendChild(renderer.domElement);
 
             scene.add(new THREE.AmbientLight(0xffffff, 2));
-            const sun = new THREE.DirectionalLight(0xffffff, 3);
-            sun.position.set(5, 10, 5);
-            scene.add(sun);
+            const light = new THREE.DirectionalLight(0xffffff, 2);
+            light.position.set(5, 10, 5);
+            scene.add(light);
 
-            scene.add(new THREE.GridHelper(500, 100, 0xff0000, 0x333333));
+            // شبكة أرضية للتأكد من أنك ترى شيئاً فوراً
+            scene.add(new THREE.GridHelper(500, 100, 0xff0000, 0x444444));
 
+            // إنشاء "سيارة مؤقتة" (صندوق أحمر) في حال لم يظهر الموديل فوراً
+            const geometry = new THREE.BoxGeometry(2, 1, 4);
+            const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+            car = new THREE.Mesh(geometry, material);
+            scene.add(car); // الآن ستجد صندوقاً أحمر يمثل السيارة فوراً!
+
+            // محاولة تحميل الموديل الحقيقي فوق الصندوق
             const loader = new THREE.GLTFLoader();
-            // هذا الرابط الموثوق من مكتبة Three.js
             loader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Ferrari.glb', (gltf) => {
-                car = gltf.scene;
+                scene.remove(car); // حذف الصندوق
+                car = gltf.scene; // وضع الفيراري
                 scene.add(car);
-                document.getElementById('status').innerHTML = "تم التشغيل! استمتع بالقيادة 🏎️";
             });
 
             const setupTouch = (id, key) => {
@@ -67,8 +71,8 @@
         function animate() {
             requestAnimationFrame(animate);
             if(car) {
-                if(keys.f) speed += 0.015;
-                if(keys.b) speed -= 0.015;
+                if(keys.f) speed += 0.02;
+                if(keys.b) speed -= 0.02;
                 if(keys.l) car.rotation.y += 0.05;
                 if(keys.r) car.rotation.y -= 0.05;
                 car.translateZ(speed);
