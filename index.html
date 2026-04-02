@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Ferrari Quick Start</title>
+    <title>Ferrari Pro: Keyboard & Touch</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: Arial; }
         #ui { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 10; pointer-events: none; }
         .btn { width: 65px; height: 65px; background: rgba(255,0,0,0.7); border: 2px solid #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 25px; pointer-events: auto; cursor: pointer; user-select: none; }
+        #speedometer { position: absolute; top: 20px; left: 20px; color: #0f0; font-family: 'Courier New', monospace; font-size: 20px; background: rgba(0,0,0,0.8); padding: 10px; border: 1px solid #0f0; }
     </style>
 </head>
 <body>
+    <div id="speedometer">السرعة: 0 كم/س</div>
     <div id="ui">
         <div class="btn" id="left">◀</div>
         <div style="display:flex; flex-direction:column; gap:10px;">
@@ -40,23 +42,47 @@
             light.position.set(5, 10, 5);
             scene.add(light);
 
-            // شبكة أرضية للتأكد من أنك ترى شيئاً فوراً
-            scene.add(new THREE.GridHelper(500, 100, 0xff0000, 0x444444));
+            // إضافة طريق إسفلتي بدلاً من الشبكة
+            const roadGeo = new THREE.PlaneGeometry(100, 2000);
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const road = new THREE.Mesh(roadGeo, roadMat);
+            road.rotation.x = -Math.PI / 2;
+            scene.add(road);
 
-            // إنشاء "سيارة مؤقتة" (صندوق أحمر) في حال لم يظهر الموديل فوراً
+            // خطوط الطريق البيضاء
+            const grid = new THREE.GridHelper(2000, 100, 0xffffff, 0x333333);
+            grid.rotation.x = Math.PI / 2;
+            road.add(grid);
+
+            // إنشاء السيارة (الصندوق الأحمر كبداية)
             const geometry = new THREE.BoxGeometry(2, 1, 4);
             const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
             car = new THREE.Mesh(geometry, material);
-            scene.add(car); // الآن ستجد صندوقاً أحمر يمثل السيارة فوراً!
+            car.position.y = 0.5;
+            scene.add(car);
 
-            // محاولة تحميل الموديل الحقيقي فوق الصندوق
-            const loader = new THREE.GLTFLoader();
-            loader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Ferrari.glb', (gltf) => {
-                scene.remove(car); // حذف الصندوق
-                car = gltf.scene; // وضع الفيراري
+            // تحميل الفيراري في الخلفية
+            new THREE.GLTFLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Ferrari.glb', (gltf) => {
+                scene.remove(car);
+                car = gltf.scene;
                 scene.add(car);
             });
 
+            // --- التحكم بالكيبورد ---
+            window.addEventListener('keydown', (e) => {
+                if(e.key === 'w' || e.key === 'ArrowUp') keys.f = true;
+                if(e.key === 's' || e.key === 'ArrowDown') keys.b = true;
+                if(e.key === 'a' || e.key === 'ArrowLeft') keys.l = true;
+                if(e.key === 'd' || e.key === 'ArrowRight') keys.r = true;
+            });
+            window.addEventListener('keyup', (e) => {
+                if(e.key === 'w' || e.key === 'ArrowUp') keys.f = false;
+                if(e.key === 's' || e.key === 'ArrowDown') keys.b = false;
+                if(e.key === 'a' || e.key === 'ArrowLeft') keys.l = false;
+                if(e.key === 'd' || e.key === 'ArrowRight') keys.r = false;
+            });
+
+            // --- التحكم باللمس ---
             const setupTouch = (id, key) => {
                 const el = document.getElementById(id);
                 el.onpointerdown = () => keys[key] = true;
@@ -73,15 +99,4 @@
             if(car) {
                 if(keys.f) speed += 0.02;
                 if(keys.b) speed -= 0.02;
-                if(keys.l) car.rotation.y += 0.05;
-                if(keys.r) car.rotation.y -= 0.05;
-                car.translateZ(speed);
-                speed *= 0.95;
-                camera.lookAt(car.position);
-            }
-            renderer.render(scene, camera);
-        }
-        window.onload = init;
-    </script>
-</body>
-</html>
+                if(keys.l) car.rotation
