@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>GTA Advanced Open World</title>
+    <title>GTA Ultra Realistic Edition</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: 'Segoe UI', sans-serif; }
-        #ui { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-around; z-index: 10; pointer-events: none; }
-        .btn { width: 70px; height: 70px; background: rgba(0,0,0,0.6); border: 2px solid #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; pointer-events: auto; cursor: pointer; user-select: none; }
-        #stats { position: absolute; top: 20px; left: 20px; color: #fff; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px; border-left: 5px solid #ff0000; }
+        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Segoe UI', sans-serif; }
+        #ui { position: absolute; bottom: 30px; width: 100%; display: flex; justify-content: space-around; z-index: 10; pointer-events: none; }
+        .btn { width: 80px; height: 80px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.5); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-size: 30px; pointer-events: auto; cursor: pointer; backdrop-filter: blur(5px); transition: 0.2s; }
+        .btn:active { background: rgba(255,0,0,0.5); transform: scale(0.9); }
+        #stats { position: absolute; top: 20px; left: 20px; color: #fff; background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(50,50,50,0.8)); padding: 20px; border-radius: 15px; border-left: 5px solid #ff0000; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        #speed-num { font-size: 24px; font-weight: bold; color: #0f0; }
     </style>
 </head>
 <body>
     <div id="stats">
-        <div id="speed">السرعة: 0 كم/س</div>
-        <div style="font-size: 12px; color: #aaa; margin-top: 5px;">عالم مفتوح - نسخة 2026</div>
+        <div id="speed-num">0 km/h</div>
+        <div style="font-size: 12px; color: #ccc; margin-top: 5px;">المدينة المتطورة - النسخة القصوى</div>
     </div>
     <div id="ui">
         <div class="btn" id="left">◀</div>
-        <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; flex-direction:column; gap:15px;">
             <div class="btn" id="up">▲</div>
             <div class="btn" id="down">▼</div>
         </div>
@@ -29,80 +31,101 @@
     <script>
         let scene, camera, renderer, car, speed = 0;
         let keys = { f: false, b: false, l: false, r: false };
-        let buildings = [];
 
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB); // لون السماء
-            scene.fog = new THREE.Fog(0x87CEEB, 1, 100); // ضباب لإعطاء عمق للمدينة
+            scene.background = new THREE.Color(0x111122); // جو ليلي هادئ
+            scene.fog = new THREE.FogExp2(0x111122, 0.015);
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 12);
-
+            
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
 
-            // إضاءة الشمس
-            const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-            sun.position.set(10, 20, 10);
-            scene.add(sun);
-            scene.add(new THREE.AmbientLight(0x404040, 1.5));
+            // إضاءة المدينة
+            const light = new THREE.DirectionalLight(0xffffff, 0.8);
+            light.position.set(50, 100, 50);
+            light.castShadow = true;
+            scene.add(light);
+            scene.add(new THREE.AmbientLight(0x404040, 0.5));
 
-            // الأرضية (الإسفلت)
-            const groundGeo = new THREE.PlaneGeometry(2000, 2000);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-            const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            scene.add(ground);
+            // إنشاء الطريق المطور
+            const roadGeo = new THREE.PlaneGeometry(20, 2000);
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            const road = new THREE.Mesh(roadGeo, roadMat);
+            road.rotation.x = -Math.PI / 2;
+            road.receiveShadow = true;
+            scene.add(road);
 
-            // إنشاء المدينة (مباني عشوائية)
-            for(let i=0; i<100; i++) {
-                const h = 5 + Math.random() * 20;
-                const bGeo = new THREE.BoxGeometry(5, h, 5);
-                const bMat = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
-                const b = new THREE.Mesh(bGeo, bMat);
-                b.position.set(Math.random()*100 - 50, h/2, Math.random()*400 - 200);
-                // ابعاد المباني عن الطريق الرئيسي
-                if(Math.abs(b.position.x) < 8) b.position.x += 15; 
-                scene.add(b);
-                buildings.push(b);
+            // خطوط الطريق
+            for(let i = -100; i < 100; i++) {
+                const lineGeo = new THREE.PlaneGeometry(0.3, 5);
+                const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const line = new THREE.Mesh(lineGeo, lineMat);
+                line.rotation.x = -Math.PI / 2;
+                line.position.set(0, 0.02, i * 15);
+                scene.add(line);
             }
 
-            // السيارة (المرجع الأساسي)
-            const carGeo = new THREE.BoxGeometry(2, 1, 4);
-            const carMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-            car = new THREE.Mesh(carGeo, carMat);
-            car.position.y = 0.5;
+            // إضافة أعمدة إنارة ومباني
+            for(let i = 0; i < 60; i++) {
+                // مباني جانبية
+                const h = 15 + Math.random() * 40;
+                const bGeo = new THREE.BoxGeometry(10, h, 10);
+                const bMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+                const b = new THREE.Mesh(bGeo, bMat);
+                let side = (i % 2 == 0) ? 20 : -20;
+                b.position.set(side + (Math.random()*10 * (side/20)), h/2, (i-30) * 30);
+                b.castShadow = true;
+                scene.add(b);
+
+                // أعمدة إنارة
+                const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, 8);
+                const pole = new THREE.Mesh(poleGeo, bMat);
+                pole.position.set(side * 0.6, 4, (i-30) * 30);
+                scene.add(pole);
+                
+                const lightSpot = new THREE.PointLight(0xffaa00, 1, 15);
+                lightSpot.position.set(side * 0.6, 8, (i-30) * 30);
+                scene.add(lightSpot);
+            }
+
+            // سيارة فيراري الاحتياطية (تظهر فوراً حتى يكتمل تحميل الموديل)
+            const carGroup = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2, 0.8, 4), new THREE.MeshStandardMaterial({color: 0xff0000}));
+            body.position.y = 0.6;
+            body.castShadow = true;
+            carGroup.add(body);
+            car = carGroup;
             scene.add(car);
 
-            // تحميل الفيراري فوق المجسم
+            // تحميل موديل الفيراري الأصلي
             new THREE.GLTFLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Ferrari.glb', (gltf) => {
-                scene.remove(car);
+                scene.remove(carGroup);
                 car = gltf.scene;
+                car.traverse(n => { if(n.isMesh) n.castShadow = true; });
                 scene.add(car);
             });
 
-            // تحكم الكيبورد
-            window.onkeydown = (e) => {
-                if(e.key == 'w' || e.key == 'ArrowUp') keys.f = true;
-                if(e.key == 's' || e.key == 'ArrowDown') keys.b = true;
-                if(e.key == 'a' || e.key == 'ArrowLeft') keys.l = true;
-                if(e.key == 'd' || e.key == 'ArrowRight') keys.r = true;
+            // التحكم
+            const handleKeys = (e, val) => {
+                if(e.key === 'w' || e.key === 'ArrowUp') keys.f = val;
+                if(e.key === 's' || e.key === 'ArrowDown') keys.b = val;
+                if(e.key === 'a' || e.key === 'ArrowLeft') keys.l = val;
+                if(e.key === 'd' || e.key === 'ArrowRight') keys.r = val;
             };
-            window.onkeyup = (e) => {
-                if(e.key == 'w' || e.key == 'ArrowUp') keys.f = false;
-                if(e.key == 's' || e.key == 'ArrowDown') keys.b = false;
-                if(e.key == 'a' || e.key == 'ArrowLeft') keys.l = false;
-                if(e.key == 'd' || e.key == 'ArrowRight') keys.r = false;
-            };
+            window.onkeydown = (e) => handleKeys(e, true);
+            window.onkeyup = (e) => handleKeys(e, false);
 
-            // تحكم اللمس
-            const setupT = (id, k) => {
-                document.getElementById(id).onpointerdown = () => keys[k] = true;
-                document.getElementById(id).onpointerup = () => keys[k] = false;
+            const setupBtn = (id, k) => {
+                const b = document.getElementById(id);
+                b.onpointerdown = () => keys[k] = true;
+                b.onpointerup = () => keys[k] = false;
             };
-            setupT('up','f'); setupT('down','b'); setupT('left','l'); setupT('right','r');
+            setupBtn('up','f'); setupBtn('down','b'); setupBtn('left','l'); setupBtn('right','r');
 
             animate();
         }
@@ -110,23 +133,20 @@
         function animate() {
             requestAnimationFrame(animate);
             if(car) {
-                if(keys.f) speed += 0.02;
-                if(keys.b) speed -= 0.02;
-                if(keys.l) car.rotation.y += 0.04;
-                if(keys.r) car.rotation.y -= 0.04;
+                if(keys.f) speed += 0.015;
+                if(keys.b) speed -= 0.015;
+                if(keys.l) car.rotation.y += 0.03;
+                if(keys.r) car.rotation.y -= 0.03;
 
                 car.translateZ(speed);
-                speed *= 0.96;
+                speed *= 0.97; // احتكاك
 
-                // الكاميرا تتبع السيارة بذكاء
-                const relativeCameraOffset = new THREE.Vector3(0, 5, 12);
-                const cameraOffset = relativeCameraOffset.applyMatrix4(car.matrixWorld);
-                camera.position.x = cameraOffset.x;
-                camera.position.y = cameraOffset.y;
-                camera.position.z = cameraOffset.z;
-                camera.lookAt(car.position);
+                // كاميرا GTA ناعمة
+                const offset = new THREE.Vector3(0, 4, 10).applyMatrix4(car.matrixWorld);
+                camera.position.lerp(offset, 0.1);
+                camera.lookAt(car.position.x, car.position.y + 1, car.position.z);
 
-                document.getElementById('speed').innerHTML = "السرعة: " + Math.round(Math.abs(speed * 250)) + " كم/س";
+                document.getElementById('speed-num').innerText = Math.round(Math.abs(speed * 300)) + " KM/H";
             }
             renderer.render(scene, camera);
         }
